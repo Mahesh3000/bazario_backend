@@ -4,6 +4,7 @@ const http = require("http");
 const mysql = require("mysql2");
 const config = require("./config");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const PORT = 4000;
 const app = express();
 
@@ -27,14 +28,11 @@ db.connect((err) => {
 });
 
 app.get("/products", (request, response) => {
-  const sql = "SELECT * FROM products"; // SQL query to select all users
-  // Execute the SQL query
+  const sql = "SELECT * FROM products"; // SQL query to select all products
   db.query(sql, (err, data) => {
     if (err) {
-      //   console.error("Error retrieving data from the database:", err);
       return response.status(500).json({ error: "Database query failed" });
     }
-    // Send the retrieved data as JSON response
     return response.status(200).json(data);
   });
 });
@@ -73,21 +71,6 @@ app.post("/login", (req, res) => {
       // Password does not match
       res.json({ success: false, message: "Invalid username or password" });
     }
-
-    // const user = results[0];
-    // bcrypt.compare(password, user.password, (err, isMatch) => {
-    //   if (err) {
-    //     return res.status(500).send("Server error");
-    //   }
-
-    //   if (isMatch) {
-    //     // Password matches
-    //     res.status(200).send("Login successful");
-    //   } else {
-    //     // Password does not match
-    //     res.status(400).send("Incorrect password");
-    //   }
-    // });
   });
 });
 
