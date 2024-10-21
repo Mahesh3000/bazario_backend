@@ -58,7 +58,7 @@ app.post("/login", (req, res) => {
     }
     const user = results[0];
     const hashedPassword = user.password;
-    console.log("hashedPassword", hashedPassword);
+    console.log("hashedPassword", hashedPassword, user);
 
     const isMatch = await bcrypt.compare(password, hashedPassword);
 
@@ -66,7 +66,9 @@ app.post("/login", (req, res) => {
 
     if (isMatch) {
       // Password matches
-      res.status(200).json({ success: true, message: "Login successful!" });
+      res
+        .status(200)
+        .json({ success: true, message: "Login successful!", data: results });
     } else {
       // Password does not match
       res.json({ success: false, message: "Invalid username or password" });
@@ -104,6 +106,39 @@ app.post("/signup", async (req, res) => {
       }
       res.status(201).json({ message: "User created successfully" });
     });
+  });
+});
+
+app.post("/add-to-cart", (req, res) => {
+  const { userId, productId, quantity } = req.body;
+
+  // Query to insert or update cart
+  const addToCartQuery = `
+        INSERT INTO cart (user_id, product_id, quantity)
+        VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity);
+    `;
+  db.query(addToCartQuery, [userId, productId, quantity], (error) => {
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Server error" });
+    }
+    res.status(201).json({ message: "Added To Cart Successfully" });
+  });
+});
+
+app.get("/getCartProducts", (req, res) => {
+  const { userId } = req.body;
+
+  // Query to Get Cart Products
+  const getCartProduct = `SELECT * FROM cart WHERE user_id = ?`;
+
+  db.query(getCartProduct, [userId], (error) => {
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Server error" });
+    }
+    res.status(201).json({ message: "Added To Cart Successfully" });
   });
 });
 
