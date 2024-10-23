@@ -110,7 +110,7 @@ app.post("/signup", async (req, res) => {
 });
 
 app.post("/add-to-cart", (req, res) => {
-  const { userId, productId, quantity } = req.body;
+  const { userId, productId, quantities } = req.body;
 
   // Query to insert or update cart
   const addToCartQuery = `
@@ -118,27 +118,61 @@ app.post("/add-to-cart", (req, res) => {
         VALUES (?, ?, ?)
         ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity);
     `;
-  db.query(addToCartQuery, [userId, productId, quantity], (error) => {
+  db.query(addToCartQuery, [userId, productId, quantities], (error) => {
     if (error) {
       console.error(error);
-      return res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ success: false, message: "Server error" });
     }
-    res.status(201).json({ message: "Added To Cart Successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "Added To Cart Successfully" });
   });
 });
 
-app.get("/getCartProducts", (req, res) => {
-  const { userId } = req.body;
+app.get("/cart/:userId", (req, res) => {
+  const { userId } = req.params;
+  console.log("userId", userId);
 
   // Query to Get Cart Products
-  const getCartProduct = `SELECT * FROM cart WHERE user_id = ?`;
+  const getCartProduct = `SELECT  cart.user_id,cart.product_id, products.name,products.description,products.image_url,products.category,cart.quantity,products.id,
+		                cart.quantity*products.price as "total_price" FROM cart
+                    JOIN products ON cart.product_id = products.id
+                    WHERE cart.user_id = ?;`;
 
-  db.query(getCartProduct, [userId], (error) => {
+  db.query(getCartProduct, [userId], (error, results) => {
     if (error) {
       console.error(error);
       return res.status(500).json({ message: "Server error" });
     }
-    res.status(201).json({ message: "Added To Cart Successfully" });
+    res.status(200).json({
+      success: true,
+      message: "Cart Successfully Updated",
+      data: results,
+    });
+  });
+});
+
+app.post("/placeorder", (req, res) => {
+  const placeorderQuery = ` INSERT INTO orders (user_id, product_id, quantity)
+        VALUES (?, ?, ?)`;
+});
+
+app.delete("/cart/:userId/:productId", (req, res) => {
+  console.log();
+
+  const { userId, productId } = req.params;
+
+  const removeFromCartQuery = `DELETE FROM CART WHERE user_id = ? AND product_id = ?`;
+
+  db.query(removeFromCartQuery, [userId, productId], (error, results) => {
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Server error" });
+    }
+    res.status(200).json({
+      success: true,
+      message: "Product Removed From Cart SuccessFully",
+    });
   });
 });
 
