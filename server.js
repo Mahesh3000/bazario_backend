@@ -62,13 +62,22 @@ app.post("/login", (req, res) => {
 
     const isMatch = await bcrypt.compare(password, hashedPassword);
 
-    console.log("isMatch", isMatch);
-
     if (isMatch) {
       // Password matches
-      res
-        .status(200)
-        .json({ success: true, message: "Login successful!", data: results });
+      const token = jwt.sign(
+        { username: user?.username },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: "1h",
+        }
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Login successful!",
+        data: results,
+        token: token,
+      });
     } else {
       // Password does not match
       res.json({ success: false, message: "Invalid username or password" });
@@ -155,6 +164,10 @@ app.get("/cart/:userId", (req, res) => {
 app.post("/placeorder", (req, res) => {
   const placeorderQuery = ` INSERT INTO orders (user_id, product_id, quantity)
         VALUES (?, ?, ?)`;
+  res.status(200).json({
+    success: true,
+    message: "Order Placed Successfully",
+  });
 });
 
 app.delete("/cart/:userId/:productId", (req, res) => {
