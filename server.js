@@ -5,6 +5,8 @@ const mysql = require("mysql2");
 const config = require("./config");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const nodemailer = require("nodemailer");
 const PORT = 4000;
 const app = express();
 
@@ -19,12 +21,54 @@ const db = mysql.createConnection({
   database: config.database,
 });
 
+const transporter = nodemailer.createTransport({
+  service: "Gmail",
+  auth: {
+    user: config.bazario_mail,
+    pass: config.bazario_pswd,
+  },
+});
+
 db.connect((err) => {
   if (err) {
     console.error("Error connecting to the database:", err);
     return;
   }
   console.log("Connected to the MySQL database");
+});
+
+app.post("/send-mail-otp", async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).send({ message: "Email is required" });
+  }
+
+  // Generate a secure OTP using crypto
+  const otp = crypto.randomInt(100000, 999999).toString(); // Generates a random 6-digit number
+  // otpStorage[email] = otp; // Store OTP in memory (consider using a more persistent storage)
+  console.log("otp", otp);
+  // return res.send({ otp: otp });
+
+  // Send OTP email
+  const mailOptions = {
+    from: config.bazario_mail,
+    to: email,
+    subject: "Your OTP Code",
+    text: `Your OTP code is ${otp}. It is valid for 5 minutes.`,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error("Error sending OTP:", error.message); // Log the error message
+      console.error("Full error details:", error); // Log the complete error object
+      return res
+        .status(500)
+        .send({ message: "Error sending OTP", error: error.message });
+    }
+    console.log("OTP sent:", info.response); // Log success info if needed
+    return res.status(200).send({ message: "OTP sent successfully" });
+  });
 });
 
 app.get("/products", (request, response) => {
