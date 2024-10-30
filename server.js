@@ -56,7 +56,7 @@ app.post("/send-otp", async (req, res) => {
       console.error("Error saving OTP to database:", err);
       return res.status(500).send({ message: "Error saving OTP" });
     }
-    console.log("OTP saved:", result.insertId);
+    // console.log("OTP saved:", result.insertId);
   });
 
   // Send OTP email
@@ -75,7 +75,7 @@ app.post("/send-otp", async (req, res) => {
         .status(500)
         .send({ message: "Error sending OTP", error: error.message });
     }
-    console.log("OTP sent:", info.response); // Log success info if needed
+    // console.log("OTP sent:", info.response); // Log success info if needed
     return res.status(200).send({ message: "OTP sent successfully" });
   });
 });
@@ -84,7 +84,7 @@ app.post("/verify-otp", async (req, res) => {
   const { email, mobile, otp } = req.body;
 
   // Ensure that either email or mobile is provided
-  if (!email || !mobile) {
+  if (!email && !mobile) {
     return res.status(400).send({ message: "Email or mobile is required" });
   }
 
@@ -127,14 +127,14 @@ app.get("/products", (request, response) => {
 app.post("/login", (req, res) => {
   // response.send("from backend side", res);
 
-  console.log("log", req.body);
+  // console.log("log", req.body);
   const { username, password } = req.body;
 
   // console.log(username, password);
 
   const query = "SELECT * FROM users WHERE username = ?";
   db.query(query, [username], async (err, results) => {
-    console.log("results", results);
+    // console.log("results", results);
     if (err) {
       return res.status(500).send("Server error");
     }
@@ -145,7 +145,7 @@ app.post("/login", (req, res) => {
     }
     const user = results[0];
     const hashedPassword = user.password;
-    console.log("hashedPassword", hashedPassword, user);
+    // console.log("hashedPassword", hashedPassword, user);
 
     const isMatch = await bcrypt.compare(password, hashedPassword);
 
@@ -200,7 +200,9 @@ app.post("/signup", async (req, res) => {
         console.error(error);
         return res.status(500).json({ message: "Server error" });
       }
-      res.status(201).json({ message: "User created successfully" });
+      res
+        .status(201)
+        .json({ success: true, message: "User created successfully" });
     });
   });
 });
@@ -227,7 +229,7 @@ app.post("/add-to-cart", (req, res) => {
 
 app.get("/cart/:userId", (req, res) => {
   const { userId } = req.params;
-  console.log("userId", userId);
+  // console.log("userId", userId);
 
   // Query to Get Cart Products
   const getCartProduct = `SELECT  cart.user_id,cart.product_id, products.name,products.description,products.image_url,products.category,cart.quantity,products.id,
@@ -258,8 +260,6 @@ app.post("/placeorder", (req, res) => {
 });
 
 app.delete("/cart/:userId/:productId", (req, res) => {
-  console.log();
-
   const { userId, productId } = req.params;
 
   const removeFromCartQuery = `DELETE FROM CART WHERE user_id = ? AND product_id = ?`;
