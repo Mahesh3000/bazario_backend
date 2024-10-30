@@ -37,23 +37,32 @@ db.connect((err) => {
   console.log("Connected to the MySQL database");
 });
 
-app.post("/send-mail-otp", async (req, res) => {
-  const { email } = req.body;
+app.post("/send-otp", async (req, res) => {
+  const { emailId } = req.body;
 
-  if (!email) {
+  if (!emailId) {
     return res.status(400).send({ message: "Email is required" });
   }
 
   // Generate a secure OTP using crypto
   const otp = crypto.randomInt(100000, 999999).toString(); // Generates a random 6-digit number
-  // otpStorage[email] = otp; // Store OTP in memory (consider using a more persistent storage)
-  console.log("otp", otp);
-  // return res.send({ otp: otp });
+
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // Expires in 5 minutes
+
+  const query =
+    "INSERT INTO otps (email, otp_code, expires_at) VALUES (?, ?, ?)";
+  db.query(query, [emailId, otp, expiresAt], (err, result) => {
+    if (err) {
+      console.error("Error saving OTP to database:", err);
+      return res.status(500).send({ message: "Error saving OTP" });
+    }
+    console.log("OTP saved:", result.insertId);
+  });
 
   // Send OTP email
   const mailOptions = {
     from: config.bazario_mail,
-    to: email,
+    to: emailId,
     subject: "Your OTP Code",
     text: `Your OTP code is ${otp}. It is valid for 5 minutes.`,
   };
@@ -68,6 +77,40 @@ app.post("/send-mail-otp", async (req, res) => {
     }
     console.log("OTP sent:", info.response); // Log success info if needed
     return res.status(200).send({ message: "OTP sent successfully" });
+  });
+});
+
+app.post("/verify-otp", async (req, res) => {
+  const { email, mobile, otp } = req.body;
+
+  // Ensure that either email or mobile is provided
+  if (!email || !mobile) {
+    return res.status(400).send({ message: "Email or mobile is required" });
+  }
+
+  // Query to find the OTP
+  const query =
+    "SELECT * FROM otps WHERE otp_code = ? AND email = ? AND expires_at > NOW()";
+
+  db.query(query, [otp, email || null, mobile || null], (err, results) => {
+    if (err) {
+      console.error("Error fetching OTP from database:", err);
+      return res.status(500).send({ message: "Error verifying OTP" });
+    }
+
+    if (results.length === 0) {
+      return res.status(400).send({ message: "Invalid or expired OTP" });
+    }
+
+    // OTP is valid, you can proceed with further actions (e.g., log in the user)
+    // Optionally, you can delete the OTP record after successful verification
+    const deleteQuery = "DELETE FROM otps WHERE otp_code = ?";
+    db.query(deleteQuery, [otp], (delErr) => {
+      if (delErr) {
+        console.error("Error deleting OTP from database:", delErr);
+      }
+      res.status(200).send({ message: "OTP verified successfully" });
+    });
   });
 });
 
