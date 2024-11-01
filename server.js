@@ -76,7 +76,9 @@ app.post("/send-otp", async (req, res) => {
         .send({ message: "Error sending OTP", error: error.message });
     }
     // console.log("OTP sent:", info.response); // Log success info if needed
-    return res.status(200).send({ message: "OTP sent successfully" });
+    return res
+      .status(200)
+      .send({ success: true, message: "OTP sent successfully" });
   });
 });
 
