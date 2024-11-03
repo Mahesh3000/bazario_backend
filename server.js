@@ -7,6 +7,9 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
+const { authenticator } = require("otplib");
+const QRCode = require("qrcode");
+
 const PORT = 4000;
 const app = express();
 
@@ -44,6 +47,36 @@ db.connect((err) => {
     return;
   }
   console.log("Connected to the MySQL database");
+});
+
+app.get("/generate-qr", async (req, res) => {
+  try {
+    // Generate a unique secret for the user
+    const secret = authenticator.generateSecret();
+    console.log("secret", secret);
+
+    // Store this secret for the user in a database (simulated here)
+    // Save the secret key securely tied to the user (e.g., user ID)
+    // For example: await User.updateOne({ _id: userId }, { totpSecret: secret });
+
+    // Generate OTP Auth URL for Google Authenticator
+    const otpAuthUrl = authenticator.keyuri(
+      "user@bazario.com",
+      "Bazario",
+      secret
+    );
+    console.log("otpAuthUrl", otpAuthUrl);
+
+    // Generate the QR code image URL
+    const qrImageUrl = await QRCode.toDataURL(otpAuthUrl);
+    console.log("qrImageUrl", qrImageUrl, otpAuthUrl);
+
+    // Send the secret and QR image to the client
+    res.json({ secret, otpAuthUrl, qrImageUrl });
+  } catch (error) {
+    console.error("Error generating QR code", error);
+    res.status(500).json({ error: "Failed to generate QR code" });
+  }
 });
 
 app.post("/send-otp", async (req, res) => {
