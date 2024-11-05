@@ -49,34 +49,62 @@ db.connect((err) => {
   console.log("Connected to the MySQL database");
 });
 
-app.get("/generate-qr", async (req, res) => {
+app.post("/generate-qr", async (req, res) => {
+  const { username, secret } = req.body;
+
+  if (!username || !secret) {
+    return res
+      .status(400)
+      .json({ message: "Username and secret are required" });
+  }
+
+  const otpauth = authenticator.keyuri(username, "Bazario", secret);
+
   try {
-    // Generate a unique secret for the user
-    const secret = authenticator.generateSecret();
-    console.log("secret", secret);
-
-    // Store this secret for the user in a database (simulated here)
-    // Save the secret key securely tied to the user (e.g., user ID)
-    // For example: await User.updateOne({ _id: userId }, { totpSecret: secret });
-
-    // Generate OTP Auth URL for Google Authenticator
-    const otpAuthUrl = authenticator.keyuri(
-      "user@bazario.com",
-      "Bazario",
-      secret
-    );
-    console.log("otpAuthUrl", otpAuthUrl);
-
-    // Generate the QR code image URL
-    const qrImageUrl = await QRCode.toDataURL(otpAuthUrl);
-    console.log("qrImageUrl", qrImageUrl, otpAuthUrl);
-
-    // Send the secret and QR image to the client
-    res.json({ secret, otpAuthUrl, qrImageUrl });
+    const qrCodeDataURL = await QRCode.toDataURL(otpauth);
+    res.status(200).json({ qrCode: qrCodeDataURL });
   } catch (error) {
     console.error("Error generating QR code", error);
     res.status(500).json({ error: "Failed to generate QR code" });
   }
+});
+
+app.post("/verify-totp", (req, res) => {
+  const { username, code } = req.body; // Use userId to retrieve the TOTP secret
+
+  // Query to retrieve the TOTP secret
+  const getTotpSecretQuery = `SELECT totp_secret FROM users WHERE username = ?`;
+
+  db.query(getTotpSecretQuery, [username], (error, results) => {
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ success: false, message: "Server error" });
+    }
+
+    console.log("results", results);
+    if (results?.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found or TOTP secret not set.",
+      });
+    }
+
+    const totpSecret = results[0].totp_secret; // Get the TOTP secret from the query result
+
+    // Verify the provided TOTP code
+    const isValid = authenticator.check(code, totpSecret);
+
+    if (isValid) {
+      // Code is valid; proceed with authentication (e.g., issuing a session or JWT)
+      return res
+        .status(200)
+        .json({ success: true, message: "TOTP verified successfully." });
+    } else {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid TOTP code." });
+    }
+  });
 });
 
 app.post("/send-otp", async (req, res) => {
@@ -217,7 +245,8 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/signup", async (req, res) => {
-  const { username, password, email } = req.body;
+  const { username, password, email, phoneNumber } = req.body;
+  const secret = authenticator.generateSecret();
 
   const salt = 10;
   const isUserExists = `SELECT * FROM users WHERE username = ? OR email = ?`;
@@ -237,17 +266,25 @@ app.post("/signup", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const createUserQuery =
-      "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
+      "INSERT INTO users (username, email, password, mobile,totp_secret) VALUES (?, ?, ?, ?, ?)";
 
-    db.query(createUserQuery, [username, email, hashedPassword], (error) => {
-      if (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Server error" });
+    db.query(
+      createUserQuery,
+      [username, email, hashedPassword, phoneNumber, secret],
+      (error) => {
+        if (error) {
+          console.error(error);
+          return res.status(500).json({ message: "Server error" });
+        }
+
+        res.status(200).json({
+          success: true,
+          message: "User created successfully",
+          username: username,
+          secret: secret,
+        });
       }
-      res
-        .status(201)
-        .json({ success: true, message: "User created successfully" });
-    });
+    );
   });
 });
 
