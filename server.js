@@ -23,21 +23,29 @@ app.use(
   })
 );
 
+// DB_HOST="localhost"
+// DB_USER="root"
+// DB_PASSWORD="Eldorado@123"
+// DB_NAME="bazario"
+// JWT_SECRET="Bazario_secret_key"
+// BAZARIO_MAIL="bazarioofficial@gmail.com"
+// BAZARIO_PSWD="fvcf sbda wpyq timy"
+
 app.use(express.json());
 // app.use(express.urlencoded({ extended: true }));
 
 const db = mysql.createConnection({
-  host: config.host,
-  user: config.user,
-  password: config.password,
-  database: config.database,
+  host: "localhost",
+  user: "root",
+  password: "Eldorado@123",
+  database: "bazario",
 });
 
 const transporter = nodemailer.createTransport({
   service: "Gmail",
   auth: {
-    user: config.bazario_mail,
-    pass: config.bazario_pswd,
+    user: "bazarioofficial@gmail.com",
+    pass: "fvcf sbda wpyq timy",
   },
 });
 
@@ -131,7 +139,7 @@ app.post("/send-otp", async (req, res) => {
 
   // Send OTP email
   const mailOptions = {
-    from: config.bazario_mail,
+    from: "bazarioofficial@gmail.com",
     to: emailId,
     subject: "Your OTP Code",
     text: `Your OTP code is ${otp}. It is valid for 5 minutes.`,
@@ -358,7 +366,7 @@ app.delete("/cart/:userId/:productId", (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.send("Hello, World!");
+  res.send("Hellooooooooooooo, World!");
 });
 
 app.listen(PORT, () => {
