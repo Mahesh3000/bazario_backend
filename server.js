@@ -34,11 +34,19 @@ app.use(
 app.use(express.json());
 // app.use(express.urlencoded({ extended: true }));
 
+// const db = mysql.createConnection({
+//   host: "localhost",
+//   user: "root",
+//   password: "Eldorado@123",
+//   database: "bazario",
+// });
+
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "Eldorado@123",
-  database: "bazario",
+  host: "database-1.c7sw0gimullx.us-east-1.rds.amazonaws.com",
+  port: "3306",
+  user: "admin",
+  password: "Asdfg$12345678",
+  database: "Bazario",
 });
 
 const transporter = nodemailer.createTransport({
